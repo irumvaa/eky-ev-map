@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EV Charging Stations — Eastern Kentucky</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f4f0;
+      color: #1a1a1a;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #0f3d2e;
+      color: #fff;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    header .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header .logo-circle {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #1D9E75;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    header p {
+      font-size: 12px;
+      color: #9ecfbb;
+      margin-top: 2px;
+    }
+
+    header .source-tag {
+      font-size: 11px;
+      color: #9ecfbb;
+      background: rgba(255,255,255,0.08);
+      padding: 4px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    .controls {
+      background: #fff;
+      border-bottom: 1px solid #e2e0db;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .controls label {
+      font-size: 12px;
+      color: #666;
+      margin-right: 2px;
+    }
+
+    .pill-btn {
+      font-size: 12px;
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: 1.5px solid #ccc;
+      background: transparent;
+      color: #333;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .pill-btn:hover { border-color: #0f3d2e; color: #0f3d2e; }
+    .pill-btn.active { background: #0f3d2e; color: #fff; border-color: #0f3d2e; }
+    .pill-btn.dealer-active { background: #EF9F27; color: #fff; border-color: #EF9F27; }
+
+    .divider { width: 1px; height: 20px; background: #e2e0db; margin: 0 4px; }
+
+    .count-badge {
+      margin-left: auto;
+      font-size: 12px;
+      color: #666;
+      background: #f0efe9;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    #map {
+      width: 100%;
+      height: calc(100vh - 170px);
+      min-height: 400px;
+    }
+
+    .legend {
+      background: #fff;
+      border-top: 1px solid #e2e0db;
+      padding: 10px 20px;
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #555;
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .legend .credit {
+      margin-left: auto;
+      font-size: 11px;
+      color: #aaa;
+    }
+
+    .leaflet-popup-content-wrapper {
+      border-radius: 10px !important;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12) !important;
+      padding: 0 !important;
+    }
+
+    .leaflet-popup-content {
+      margin: 0 !important;
+      width: auto !important;
+    }
+
+    .popup-inner {
+      padding: 14px 16px;
+      min-width: 220px;
+      max-width: 260px;
+    }
+
+    .popup-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #111;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
+    .popup-badges {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 9px;
+      border-radius: 10px;
+    }
+
+    .badge-l2 { background: #e1f5ee; color: #085041; }
+    .badge-l3 { background: #e6f1fb; color: #0C447C; }
+    .badge-dealer { background: #faeeda; color: #633806; }
+
+    .popup-table {
+      width: 100%;
+      font-size: 12px;
+      border-collapse: collapse;
+    }
+
+    .popup-table td {
+      padding: 3px 0;
+      vertical-align: top;
+    }
+
+    .popup-table td:first-child {
+      color: #888;
+      width: 65px;
+    }
+
+    .popup-table td:last-child {
+      color: #222;
+    }
+
+    @media (max-width: 600px) {
+      header { padding: 14px 16px; }
+      .controls { padding: 10px 14px; }
+      #map { height: calc(100vh - 190px); }
+      .legend { padding: 8px 14px; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo-circle">⚡</div>
+    <div>
+      <h1>EV Charging Stations — Eastern Kentucky</h1>
+      <p>Public Level 2 &amp; DC Fast chargers across Mountain Association's service region</p>
+    </div>
+  </div>
+  <span class="source-tag">Source: NREL AFDC · June 2026</span>
+</header>
+
+<div class="controls">
+  <label>Level:</label>
+  <button class="pill-btn active" id="btn-all" onclick="setLevel('all')">All</button>
+  <button class="pill-btn" id="btn-l2" onclick="setLevel('Level 2')">Level 2</button>
+  <button class="pill-btn" id="btn-l3" onclick="setLevel('Level 3')">Level 3 DC Fast</button>
+  <div class="divider"></div>
+  <label>Type:</label>
+  <button class="pill-btn" id="btn-dealer" onclick="toggleDealers()">Hide dealerships</button>
+  <span class="count-badge" id="count-badge">41 stations</span>
+</div>
+
+<div id="map" role="application" aria-label="Interactive map of EV charging stations in Eastern Kentucky"></div>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-dot" style="background:#1D9E75;"></span>Level 2 — public</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#378ADD;"></span>Level 3 — public</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#EF9F27;"></span>Level 2 — dealership</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#D85A30;"></span>Level 3 — dealership</div>
+  <span class="credit">Data: NREL Alternative Fuels Data Center &amp; Mountain Association · Map: OpenStreetMap</span>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const stations = [
+  {name:"Columbia City Hall",county:"Adair",level:"Level 2",pricing:"$0.18 per kWh",facility:"Government",dealer:false,lat:37.1003,lng:-85.3085,plugs:2},
+  {name:"Don Franklin Ford",county:"Adair",level:"Level 2",pricing:"Unknown",facility:"Dealership",dealer:true,lat:37.0970,lng:-85.3080,plugs:1},
+  {name:"City of Columbia",county:"Adair",level:"Level 2",pricing:"$0.18 per kWh",facility:"Government",dealer:false,lat:37.0953,lng:-85.2990,plugs:2},
+  {name:"Clark's Pump N Shop",county:"Carter",level:"Level 2",pricing:"$2/hour",facility:"Store",dealer:false,lat:38.2984,lng:-83.2149,plugs:1},
+  {name:"Pure Country Automotive",county:"Carter",level:"Level 2",pricing:"Unknown",facility:"Dealership",dealer:true,lat:38.3010,lng:-83.2200,plugs:1},
+  {name:"Winchester Downtown Parking Lot",county:"Clark",level:"Level 2",pricing:"Free",facility:"Parking",dealer:false,lat:37.9901,lng:-84.1796,plugs:2},
+  {name:"Waterfront Grill & Gathering",county:"Clark",level:"Level 2",pricing:"Free",facility:"Restaurant",dealer:false,lat:37.9634,lng:-84.1341,plugs:2},
+  {name:"LockRidge Park",county:"Garrard",level:"Level 2",pricing:"Min fee $1.50",facility:"Park",dealer:false,lat:37.5756,lng:-84.5779,plugs:2},
+  {name:"Harlan Center",county:"Harlan",level:"Level 2",pricing:"Free",facility:"Community Center",dealer:false,lat:36.8431,lng:-83.3224,plugs:2},
+  {name:"Square on Main Lot",county:"Harlan",level:"Level 2",pricing:"Free",facility:"Parking",dealer:false,lat:36.9793,lng:-82.9938,plugs:2},
+  {name:"Stanford Public Garage",county:"Lincoln",level:"Level 2",pricing:"Free",facility:"Parking",dealer:false,lat:37.5301,lng:-84.6607,plugs:2},
+  {name:"First Southern National Bank",county:"Lincoln",level:"Level 2",pricing:"Free",facility:"Store",dealer:false,lat:37.5312,lng:-84.6613,plugs:2},
+  {name:"Berea Police Department",county:"Madison",level:"Level 2",pricing:"Free",facility:"Government",dealer:false,lat:37.5687,lng:-84.2963,plugs:6},
+  {name:"Berea College Forestry Center",county:"Madison",level:"Level 2",pricing:"Free",facility:"Education",dealer:false,lat:37.5620,lng:-84.2780,plugs:2},
+  {name:"KU Richmond City Hall",county:"Madison",level:"Level 2",pricing:"$0.83/hr",facility:"Government",dealer:false,lat:37.7479,lng:-84.2947,plugs:2},
+  {name:"Telford Community Center YMCA",county:"Madison",level:"Level 2",pricing:"Free",facility:"Gym",dealer:false,lat:37.7344,lng:-84.2816,plugs:2},
+  {name:"Gates Ford Lincoln",county:"Madison",level:"Level 2",pricing:"Unknown",facility:"Dealership",dealer:true,lat:37.7420,lng:-84.3010,plugs:2},
+  {name:"Planet Fitness",county:"Madison",level:"Level 2",pricing:"Free w/ membership",facility:"Gym",dealer:false,lat:37.7389,lng:-84.3042,plugs:2},
+  {name:"Lake Reba Park",county:"Madison",level:"Level 2",pricing:"Free",facility:"Park",dealer:false,lat:37.7200,lng:-84.2750,plugs:2},
+  {name:"Gates Nissan (L2)",county:"Madison",level:"Level 2",pricing:"Unknown",facility:"Dealership",dealer:true,lat:37.7430,lng:-84.2980,plugs:2},
+  {name:"Perry Park Rd Parking",county:"Perry",level:"Level 2",pricing:"Free",facility:"Parking",dealer:false,lat:37.2520,lng:-83.1870,plugs:2},
+  {name:"Walters Nissan",county:"Pike",level:"Level 2",pricing:"Unknown",facility:"Dealership",dealer:true,lat:37.4793,lng:-82.5185,plugs:1},
+  {name:"Pikeville Public Parking",county:"Pike",level:"Level 2",pricing:"Free",facility:"Parking",dealer:false,lat:37.4810,lng:-82.5210,plugs:2},
+  {name:"Don Franklin Nissan",county:"Pulaski",level:"Level 2",pricing:"Unknown",facility:"Dealership",dealer:true,lat:37.0941,lng:-84.6049,plugs:1},
+  {name:"Tim Short Ford of Morehead",county:"Rowan",level:"Level 2",pricing:"Unknown",facility:"Dealership",dealer:true,lat:38.1862,lng:-83.4324,plugs:1},
+  {name:"Doughboy Parking",county:"Wayne",level:"Level 2",pricing:"Free",facility:"Parking",dealer:false,lat:36.9959,lng:-84.8341,plugs:2},
+  {name:"Sander's Park",county:"Whitley",level:"Level 2",pricing:"$1/hr",facility:"Park",dealer:false,lat:36.7460,lng:-84.1530,plugs:2},
+  {name:"Don Franklin Ford (DC Fast)",county:"Laurel",level:"Level 3",pricing:"$0.80 per kWh",facility:"Dealership",dealer:true,lat:37.1250,lng:-84.0892,plugs:2},
+  {name:"McDonald's / Tourist Info Center",county:"Laurel",level:"Level 3",pricing:"Payment required",facility:"Store",dealer:false,lat:37.1289,lng:-84.0832,plugs:1},
+  {name:"CircleK Berea",county:"Madison",level:"Level 3",pricing:"Pay (app)",facility:"Store",dealer:false,lat:37.5710,lng:-84.3013,plugs:4},
+  {name:"Buc-ee's Tesla Supercharger",county:"Madison",level:"Level 3",pricing:"Payment required",facility:"Fuel Station",dealer:false,lat:37.7265,lng:-84.2754,plugs:8},
+  {name:"MB Buc-ee's Richmond",county:"Madison",level:"Level 3",pricing:"Payment required",facility:"Fuel Station",dealer:false,lat:37.7268,lng:-84.2760,plugs:4},
+  {name:"CircleK Richmond",county:"Madison",level:"Level 3",pricing:"~$0.43/kWh",facility:"Store",dealer:false,lat:37.7501,lng:-84.2831,plugs:4},
+  {name:"Jack Burford Chevrolet",county:"Madison",level:"Level 3",pricing:"$0.34/kWh",facility:"Dealership",dealer:true,lat:37.7350,lng:-84.2900,plugs:1},
+  {name:"Gates Nissan (L3)",county:"Madison",level:"Level 3",pricing:"Unknown",facility:"Dealership",dealer:true,lat:37.7440,lng:-84.2995,plugs:1},
+  {name:"Pilot Travel Center #41",county:"Montgomery",level:"Level 3",pricing:"Pay",facility:"Fuel Station",dealer:false,lat:38.0534,lng:-83.9449,plugs:4},
+  {name:"FasCharge Apple Market",county:"Perry",level:"Level 3",pricing:"Free (1st month)",facility:"Store",dealer:false,lat:37.2498,lng:-83.1932,plugs:1},
+  {name:"Don Franklin Kia",county:"Pulaski",level:"Level 3",pricing:"$0.86/kW",facility:"Dealership",dealer:true,lat:37.0960,lng:-84.6070,plugs:1},
+  {name:"Eagle Chevrolet Buick GMC",county:"Rowan",level:"Level 3",pricing:"$30 flat rate",facility:"Dealership",dealer:true,lat:38.1880,lng:-83.4310,plugs:1},
+  {name:"Walmart Williamsburg",county:"Whitley",level:"Level 3",pricing:"Pay required",facility:"Store",dealer:false,lat:36.7434,lng:-84.1598,plugs:4},
+  {name:"Pilot Travel Center #437",county:"Whitley",level:"Level 3",pricing:"Pay required",facility:"Fuel Station",dealer:false,lat:36.7389,lng:-84.1623,plugs:4},
+];
+
+function getColor(s) {
+  if (s.dealer) return s.level === 'Level 3' ? '#D85A30' : '#EF9F27';
+  return s.level === 'Level 3' ? '#378ADD' : '#1D9E75';
+}
+
+function makeIcon(s) {
+  const c = getColor(s);
+  const label = s.level === 'Level 3' ? 'DC' : 'L2';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40">
+    <path d="M16 0C7.163 0 0 7.163 0 16c0 10.707 16 24 16 24S32 26.707 32 16C32 7.163 24.837 0 16 0z" fill="${c}" stroke="white" stroke-width="1.5"/>
+    <circle cx="16" cy="16" r="8" fill="white"/>
+    <text x="16" y="20" text-anchor="middle" font-size="8" font-weight="700" fill="${c}" font-family="sans-serif">${label}</text>
+  </svg>`;
+  return L.divIcon({html: svg, iconSize:[32,40], iconAnchor:[16,40], popupAnchor:[0,-42], className:''});
+}
+
+function makePopup(s) {
+  const lvlClass = s.level === 'Level 3' ? 'badge-l3' : 'badge-l2';
+  const dealerBadge = s.dealer ? `<span class="badge badge-dealer">Dealership</span>` : '';
+  return `<div class="popup-inner">
+    <div class="popup-name">${s.name}</div>
+    <div class="popup-badges">
+      <span class="badge ${lvlClass}">${s.level}</span>
+      ${dealerBadge}
+    </div>
+    <table class="popup-table">
+      <tr><td>County</td><td>${s.county}</td></tr>
+      <tr><td>Facility</td><td>${s.facility}</td></tr>
+      <tr><td>Pricing</td><td>${s.pricing}</td></tr>
+      <tr><td>Plugs</td><td>${s.plugs}</td></tr>
+    </table>
+  </div>`;
+}
+
+let map, markers = [], currentLevel = 'all', hideDealers = false;
+
+function render() {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+  const visible = stations.filter(s => {
+    if (currentLevel !== 'all' && s.level !== currentLevel) return false;
+    if (hideDealers && s.dealer) return false;
+    return true;
+  });
+  visible.forEach(s => {
+    const m = L.marker([s.lat, s.lng], {icon: makeIcon(s)})
+      .bindPopup(makePopup(s), {maxWidth: 280});
+    m.addTo(map);
+    markers.push(m);
+  });
+  document.getElementById('count-badge').textContent = visible.length + ' stations';
+}
+
+function setLevel(lvl) {
+  currentLevel = lvl;
+  ['all','l2','l3'].forEach(id => {
+    document.getElementById('btn-' + id).classList.remove('active');
+  });
+  const key = lvl === 'all' ? 'all' : lvl === 'Level 2' ? 'l2' : 'l3';
+  document.getElementById('btn-' + key).classList.add('active');
+  render();
+}
+
+function toggleDealers() {
+  hideDealers = !hideDealers;
+  const b = document.getElementById('btn-dealer');
+  b.textContent = hideDealers ? 'Show dealerships' : 'Hide dealerships';
+  b.classList.toggle('dealer-active', hideDealers);
+  render();
+}
+
+map = L.map('map').setView([37.5, -83.8], 8);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  maxZoom: 18
+}).addTo(map);
+render();
+</script>
+</body>
+</html>
