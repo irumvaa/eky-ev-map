@@ -319,7 +319,12 @@ function refreshAll(){
 refreshAll();
 
 if (DATA_SOURCE_URL && DATA_SOURCE_URL.indexOf('PASTE_YOUR') === -1) {
-  fetch(DATA_SOURCE_URL)
+  // cache:'no-store' plus a timestamp query param stop the browser (and
+  // any CDN/proxy in between) from silently reusing an old cached copy
+  // of the data feed. Without this, edits made in the spreadsheet can
+  // take a while to actually show up on the live map.
+  const cacheBustUrl = DATA_SOURCE_URL + (DATA_SOURCE_URL.includes('?') ? '&' : '?') + '_=' + Date.now();
+  fetch(cacheBustUrl, { cache: 'no-store' })
     .then(r => r.json())
     .then(data => {
       if (Array.isArray(data) && data.length) {
